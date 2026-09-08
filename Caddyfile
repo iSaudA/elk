@@ -1,0 +1,6 @@
+# Automatic certificate issuance and renewal is provided by Caddy.
+# Reference: https://caddyserver.com/docs/automatic-https
+# Azure DNS points at the VM. Caddy obtains and renews the TLS certificate.
+{$KIBANA_HOSTNAME} {
+    reverse_proxy kibana:5601
+}

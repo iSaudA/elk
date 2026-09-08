@@ -1,0 +1,15 @@
+{
+  "name": "ayn-al-sijill-replica-shop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Small commerce workload that emits correlated ECS-style JSON logs",
+  "scripts": {
+    "start": "node src/server.js",
+    "worker": "node src/worker.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

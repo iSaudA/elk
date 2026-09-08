@@ -1,0 +1,182 @@
+# Project choice: one VM and Compose keep the course demo small; there is no HA.
+# Readiness checks wait for dependencies; setup containers must finish successfully.
+# Reference: https://docs.docker.com/compose/how-tos/startup-order/
+# Public HTTPS is handled by Caddy; data services stay inside the VM/Compose network.
+name: ayn-al-sijill
+
+# Run on the Azure VM; there is no separate local deployment.
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      KIBANA_HOSTNAME: ${KIBANA_HOSTNAME:?KIBANA_HOSTNAME is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      kibana:
+        condition: service_healthy
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-8.19.21}
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.enrollment.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+    restart: unless-stopped
+
+  elastic-setup:
+    image: curlimages/curl:8.15.0
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+      KIBANA_PASSWORD: ${KIBANA_PASSWORD:?KIBANA_PASSWORD is required}
+      LOGSTASH_PASSWORD: ${LOGSTASH_PASSWORD:?LOGSTASH_PASSWORD is required}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        auth="elastic:$${ELASTIC_PASSWORD}"
+        curl -fsS -u "$$auth" -X POST http://elasticsearch:9200/_security/user/kibana_system/_password \
+          -H 'content-type: application/json' -d "{\"password\":\"$${KIBANA_PASSWORD}\"}"
+        curl -fsS -u "$$auth" -X PUT http://elasticsearch:9200/_security/role/ayn_log_writer \
+          -H 'content-type: application/json' \
+          -d '{"cluster":["monitor"],"indices":[{"names":["ayn-al-sijill-*"],"privileges":["auto_configure","create","create_index","index","write"]}]}'
+        curl -fsS -u "$$auth" -X POST http://elasticsearch:9200/_security/user/logstash_internal \
+          -H 'content-type: application/json' \
+          -d "{\"password\":\"$${LOGSTASH_PASSWORD}\",\"roles\":[\"ayn_log_writer\"]}"
+        curl -fsS -u "$$auth" -X PUT http://elasticsearch:9200/_ilm/policy/ayn-seven-days \
+          -H 'content-type: application/json' \
+          -d '{"policy":{"phases":{"hot":{"actions":{}},"delete":{"min_age":"7d","actions":{"delete":{}}}}}}'
+        curl -fsS -u "$$auth" -X PUT http://elasticsearch:9200/_index_template/ayn-al-sijill \
+          -H 'content-type: application/json' \
+          -d '{"index_patterns":["ayn-al-sijill-*"],"template":{"settings":{"index.lifecycle.name":"ayn-seven-days"}}}'
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: "no"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION:-8.19.21}
+    environment:
+      LS_JAVA_OPTS: -Xms768m -Xmx768m
+      XPACK_MONITORING_ENABLED: "false"
+      ELASTICSEARCH_USERNAME: logstash_internal
+      ELASTICSEARCH_PASSWORD: ${LOGSTASH_PASSWORD:?LOGSTASH_PASSWORD is required}
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    depends_on:
+      elastic-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9600/_node/pipelines >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION:-8.19.21}
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD:?KIBANA_PASSWORD is required}
+      SERVER_PUBLICBASEURL: https://${KIBANA_HOSTNAME:?KIBANA_HOSTNAME is required}
+      XPACK_SECURITY_SECURECOOKIES: "true"
+      TELEMETRY_ENABLED: "false"
+      NODE_OPTIONS: --max-old-space-size=1536
+    depends_on:
+      elastic-setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+  kibana-setup:
+    image: curlimages/curl:8.15.0
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        # Kibana may return HTTP 200 with success:false for a failed import.
+        result=$$(curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" \
+          -X POST 'http://kibana:5601/api/saved_objects/_import?overwrite=true' \
+          -H 'kbn-xsrf: setup' -F file=@/objects.ndjson)
+        echo "$$result"
+        echo "$$result" | grep -Eq '"success"[[:space:]]*:[[:space:]]*true'
+    volumes:
+      - ./kibana/objects.ndjson:/objects.ndjson:ro
+    depends_on:
+      kibana:
+        condition: service_healthy
+    restart: "no"
+
+  replica-app:
+    build: .
+    environment:
+      PORT: "3000"
+      APP_ENV: azure-demo
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: "5044"
+    ports:
+      - "3000:3000"
+    depends_on:
+      logstash:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  traffic-worker:
+    build: .
+    command: ["node", "src/worker.js"]
+    environment:
+      WORKER_TARGET: http://replica-app:3000
+      REQUESTS_PER_MINUTE: ${REQUESTS_PER_MINUTE:-30}
+      GHOST_ORDER_EVERY: ${GHOST_ORDER_EVERY:-20}
+    depends_on:
+      replica-app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${STACK_VERSION:-8.19.21}
+    user: root
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+    depends_on:
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
+  elasticsearch-data:

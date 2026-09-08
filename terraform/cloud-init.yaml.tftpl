@@ -1,0 +1,62 @@
+#cloud-config
+# First-boot template rendered by Terraform; keep #cloud-config as the first line.
+# Reference: https://learn.microsoft.com/en-us/azure/virtual-machines/linux/using-cloud-init
+# Base64 safely carries file text through the template; it does not hide secrets.
+# Demo limitation: credentials pass through VM custom data and Terraform state.
+package_update: false
+
+write_files:
+  - path: /opt/ayn-al-sijill/Caddyfile
+    encoding: b64
+    content: ${caddyfile}
+  - path: /opt/ayn-al-sijill/.env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      KIBANA_HOSTNAME=${kibana_hostname}
+      STACK_VERSION=8.19.21
+      REQUESTS_PER_MINUTE=30
+      GHOST_ORDER_EVERY=20
+      ELASTIC_PASSWORD=${elastic_password}
+      KIBANA_PASSWORD=${kibana_password}
+      LOGSTASH_PASSWORD=${logstash_password}
+  - path: /opt/ayn-al-sijill/compose.azure.yaml
+    encoding: b64
+    content: ${compose}
+  - path: /opt/ayn-al-sijill/Dockerfile
+    encoding: b64
+    content: ${dockerfile}
+  - path: /opt/ayn-al-sijill/package.json
+    encoding: b64
+    content: ${package_json}
+  - path: /opt/ayn-al-sijill/src/server.js
+    encoding: b64
+    content: ${server_js}
+  - path: /opt/ayn-al-sijill/test/server.test.js
+    encoding: b64
+    content: ${server_test}
+  - path: /opt/ayn-al-sijill/src/worker.js
+    encoding: b64
+    content: ${worker_js}
+  - path: /opt/ayn-al-sijill/logstash/pipeline/logstash.conf
+    encoding: b64
+    content: ${logstash}
+  - path: /opt/ayn-al-sijill/filebeat/filebeat.yml
+    encoding: b64
+    content: ${filebeat}
+  - path: /opt/ayn-al-sijill/kibana/objects.ndjson
+    encoding: b64
+    content: ${kibana_objects}
+  - path: /opt/ayn-al-sijill/scripts/setup.sh
+    permissions: "0755"
+    encoding: b64
+    content: ${setup_script}
+  - path: /opt/ayn-al-sijill/scripts/validate.sh
+    permissions: "0755"
+    encoding: b64
+    content: ${validate_script}
+
+runcmd:
+  - [bash, /opt/ayn-al-sijill/scripts/setup.sh]
+
+final_message: "AYN AL-SIJILL bootstrap finished"
