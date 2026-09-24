@@ -7,6 +7,10 @@ terraform {
   backend "azurerm" {}
 
   required_providers {
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
+    }
     azapi = {
       source  = "Azure/azapi"
       version = "~> 2.12"

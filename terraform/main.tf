@@ -27,9 +27,18 @@ resource "random_password" "logstash" {
   special = false
 }
 
+resource "random_password" "log_ingest" {
+  length  = 32
+  special = false
+}
+
 # local.* values are computed once for reuse; var.* values are configuration inputs.
 locals {
-  kibana_hostname = "${var.project_name}-${random_id.dns.hex}.${var.location}.cloudapp.azure.com"
+  kibana_hostname         = "${var.project_name}-${random_id.dns.hex}.${var.location}.cloudapp.azure.com"
+  analytics_function_name = "func-${var.project_name}-${random_id.dns.hex}"
+  analytics_ingest_url    = "https://${local.analytics_function_name}.azurewebsites.net/api/incidents"
+  shop_function_url       = "https://${local.analytics_function_name}.azurewebsites.net/api/shop"
+  log_ingest_url          = "https://${local.kibana_hostname}/ingest"
 
   tags = merge({
     project     = "AYN AL-SIJILL"
@@ -43,22 +52,22 @@ locals {
   # Base64 is transport encoding, not encryption. Generated secrets are held in state.
   # Subsequent application updates use scripts/deploy-azure.sh.
   cloud_init = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    kibana_hostname   = local.kibana_hostname
-    caddyfile         = base64encode(file("${path.module}/../Caddyfile"))
-    elastic_password  = random_password.elastic.result
-    kibana_password   = random_password.kibana.result
-    logstash_password = random_password.logstash.result
-    compose           = base64encode(file("${path.module}/../compose.azure.yaml"))
-    dockerfile        = base64encode(file("${path.module}/../Dockerfile"))
-    package_json      = base64encode(file("${path.module}/../package.json"))
-    server_js         = base64encode(file("${path.module}/../src/server.js"))
-    server_test       = base64encode(file("${path.module}/../test/server.test.js"))
-    worker_js         = base64encode(file("${path.module}/../src/worker.js"))
-    logstash          = base64encode(file("${path.module}/../logstash/pipeline/logstash.conf"))
-    filebeat          = base64encode(file("${path.module}/../filebeat/filebeat.yml"))
-    kibana_objects    = base64encode(file("${path.module}/../kibana/objects.ndjson"))
-    setup_script      = base64encode(file("${path.module}/../scripts/setup.sh"))
-    validate_script   = base64encode(file("${path.module}/../scripts/validate.sh"))
+    kibana_hostname          = local.kibana_hostname
+    app_url                  = var.enable_analytics_export ? local.shop_function_url : "disabled"
+    caddyfile                = base64encode(file("${path.module}/../Caddyfile"))
+    elastic_password         = random_password.elastic.result
+    kibana_password          = random_password.kibana.result
+    logstash_password        = random_password.logstash.result
+    log_ingest_token         = random_password.log_ingest.result
+    compose                  = base64encode(file("${path.module}/../compose.azure.yaml"))
+    logstash                 = base64encode(file("${path.module}/../logstash/pipeline/logstash.conf"))
+    filebeat                 = base64encode(file("${path.module}/../filebeat/filebeat.yml"))
+    kibana_objects           = base64encode(file("${path.module}/../kibana/objects.ndjson"))
+    setup_script             = base64encode(file("${path.module}/../scripts/setup.sh"))
+    validate_script          = base64encode(file("${path.module}/../scripts/validate.sh"))
+    analytics_export_enabled = var.enable_analytics_export
+    analytics_ingest_url     = var.enable_analytics_export ? local.analytics_ingest_url : "http://127.0.0.1/disabled"
+    analytics_ingest_token   = var.enable_analytics_export ? random_password.analytics_ingest_token[0].result : "disabled"
   })
 }
 

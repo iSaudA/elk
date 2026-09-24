@@ -40,7 +40,7 @@ variable "ssh_public_key" {
 }
 
 variable "allowed_cidrs" {
-  description = "Public IPv4/IPv6 CIDRs allowed to reach SSH and Replica Shop."
+  description = "Public IPv4/IPv6 CIDRs allowed to reach SSH."
   type        = list(string)
 
   validation {
@@ -64,4 +64,45 @@ variable "tags" {
   description = "Extra Azure tags."
   type        = map(string)
   default     = {}
+}
+
+variable "enable_analytics_export" {
+  description = "Provision the Azure Functions shop simulator and Logstash-to-Azure-SQL reporting branch."
+  type        = bool
+  default     = true
+}
+
+variable "analytics_location" {
+  description = "Azure region for the Function compute resources."
+  type        = string
+  default     = "eastus2"
+}
+
+variable "analytics_sql_location" {
+  description = "Azure region for the SQL reporting database when the primary project region restricts SQL provisioning."
+  type        = string
+  default     = "centralus"
+}
+
+variable "analytics_database_sku" {
+  description = "Azure SQL serverless SKU used by the reporting branch."
+  type        = string
+  default     = "GP_S_Gen5_1"
+}
+
+variable "analytics_database_max_size_gb" {
+  description = "Maximum Azure SQL database size for reporting data."
+  type        = number
+  default     = 32
+}
+
+variable "analytics_database_auto_pause_minutes" {
+  description = "Idle time before the serverless reporting database pauses."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.analytics_database_auto_pause_minutes == -1 || var.analytics_database_auto_pause_minutes >= 60
+    error_message = "Use -1 to disable auto-pause, or at least 60 minutes."
+  }
 }

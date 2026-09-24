@@ -2,5 +2,11 @@
 # Reference: https://caddyserver.com/docs/automatic-https
 # Azure DNS points at the VM. Caddy obtains and renews the TLS certificate.
 {$KIBANA_HOSTNAME} {
-    reverse_proxy kibana:5601
+	handle /ingest {
+		reverse_proxy logstash:8080
+	}
+
+	handle {
+		reverse_proxy kibana:5601
+	}
 }

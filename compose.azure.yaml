@@ -20,6 +20,8 @@ services:
     depends_on:
       kibana:
         condition: service_healthy
+      logstash:
+        condition: service_healthy
     restart: unless-stopped
 
   elasticsearch:
@@ -78,6 +80,10 @@ services:
       XPACK_MONITORING_ENABLED: "false"
       ELASTICSEARCH_USERNAME: logstash_internal
       ELASTICSEARCH_PASSWORD: ${LOGSTASH_PASSWORD:?LOGSTASH_PASSWORD is required}
+      ANALYTICS_EXPORT_ENABLED: ${ANALYTICS_EXPORT_ENABLED:-false}
+      ANALYTICS_INGEST_URL: ${ANALYTICS_INGEST_URL:-http://127.0.0.1/disabled}
+      ANALYTICS_INGEST_TOKEN: ${ANALYTICS_INGEST_TOKEN:-disabled}
+      LOG_INGEST_TOKEN: ${LOG_INGEST_TOKEN:?LOG_INGEST_TOKEN is required}
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
     depends_on:
@@ -130,37 +136,6 @@ services:
       kibana:
         condition: service_healthy
     restart: "no"
-
-  replica-app:
-    build: .
-    environment:
-      PORT: "3000"
-      APP_ENV: azure-demo
-      LOGSTASH_HOST: logstash
-      LOGSTASH_PORT: "5044"
-    ports:
-      - "3000:3000"
-    depends_on:
-      logstash:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    restart: unless-stopped
-
-  traffic-worker:
-    build: .
-    command: ["node", "src/worker.js"]
-    environment:
-      WORKER_TARGET: http://replica-app:3000
-      REQUESTS_PER_MINUTE: ${REQUESTS_PER_MINUTE:-30}
-      GHOST_ORDER_EVERY: ${GHOST_ORDER_EVERY:-20}
-    depends_on:
-      replica-app:
-        condition: service_healthy
-    restart: unless-stopped
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:${STACK_VERSION:-8.19.21}

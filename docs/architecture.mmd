@@ -1,15 +1,18 @@
 flowchart LR
     viewer["Team member"]
+    backfill["Historical seeder: January 2026 to present"]
     terraform["Terraform provisions Azure"]
 
-    subgraph azure["Microsoft Azure — East US"]
+    subgraph azure["Microsoft Azure — East US + East US 2 + Central US"]
         start["Logic App: start daily at 09:00 Riyadh"]
         stop["Auto-shutdown: 23:00 Riyadh"]
+        function["Azure Functions: randomized shop API + timer"]
+        telegram["Telegram Bot API: incident alerts"]
+        sql[("Azure SQL: Power BI reporting view")]
+        powerbi["Power BI Desktop / Service"]
         subgraph vm["One Ubuntu VM — Docker Compose"]
             proxy["Caddy: HTTPS"]
             kibana["Kibana: login and four investigation views"]
-            worker["Traffic worker: 30 requests/min"]
-            app["Replica Shop: checkout and Ghost Order"]
             logs["Linux and Docker logs"]
             beat["Filebeat: collects logs"]
             logstash["Logstash: processes events"]
@@ -19,13 +22,20 @@ flowchart LR
     end
 
     viewer -->|"Public HTTPS 443"| proxy
+    viewer -->|"Run once or safely rerun"| backfill
+    backfill -->|"Authenticated historical batches"| proxy
     proxy -->|"Internal 5601"| kibana
     kibana -->|"Search"| elastic
-    worker -->|"Every 20th request fails"| app
-    app -->|"Correlated JSON events"| logstash
+    function -->|"Authenticated HTTPS event batches"| proxy
+    proxy -->|"/ingest"| logstash
     logs --> beat
     beat --> logstash
     logstash -->|"Index"| elastic
+    logstash -->|"Authenticated HTTPS copy"| function
+    function -->|"Upsert incident events"| sql
+    function -->|"Failed checkout summary"| telegram
+    telegram -->|"Incident notification"| viewer
+    powerbi -->|"Azure SQL connector"| sql
     terraform -.->|"Provision"| vm
     terraform -.->|"Save state"| state
     start -.->|"Start VM"| vm

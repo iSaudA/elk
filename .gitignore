@@ -3,6 +3,8 @@ backend.hcl
 terraform/.terraform/
 terraform/*.tfstate*
 terraform/*.tfplan
+terraform/.analytics-function.zip
 crash.log
 
 .deployment/
+function-app/node_modules/

@@ -18,13 +18,11 @@ resource "azurerm_network_security_group" "this" {
   tags                = var.tags
 }
 
-# for_each turns this small map into one SSH rule and one application rule.
-# Stable map keys identify the rules in Terraform state.
+# Keep administrative SSH restricted to the operator CIDRs. The shop API now
+# runs in Azure Functions, so the VM no longer exposes application port 3000.
 locals {
   inbound_ports = {
     ssh = { priority = 100, port = "22" }
-    app = { priority = 110, port = "3000" }
-
   }
 }
 

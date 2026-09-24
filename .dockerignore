@@ -1,8 +1,0 @@
-# Send only the application and tests to Docker, never Azure credentials or keys.
-*
-!Dockerfile
-!package.json
-!src/
-!src/**
-!test/
-!test/**

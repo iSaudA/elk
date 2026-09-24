@@ -54,7 +54,7 @@ For a GCP comparison, the backend changes from `azurerm` to `gcs` and the resour
 | Cloud-init | Installs software on the VM's first boot | Azure-supported provisioning mechanism |
 | `ignore_changes = [custom_data]` | Avoids replacing the VM whenever bootstrap text changes; later edits are not installed automatically | Project lifecycle tradeoff |
 | Compose health checks | Waits for dependencies to be ready and setup jobs to succeed | Documented readiness mechanism |
-| One VM and simulated services | Makes the demo affordable and explainable; no real commerce database or payments | Demo scope, not high availability |
+| Azure Functions simulator and one ELK VM | Keeps synthetic traffic serverless while retaining the existing searchable ELK demo; no real commerce database or payments | Demo scope, not high availability |
 | Generated credentials in state/custom data | Makes initial setup self-contained; base64 encoding does not protect them | Demo credential-management limitation |
 | Logic App startup | A separate Azure service can start a powered-off VM using narrowly scoped permissions | Project schedule choice |
 | GitHub OIDC | Allows GitHub to request Azure access without storing a client password | Optional automation mechanism |

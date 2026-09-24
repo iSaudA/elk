@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Small commerce workload that emits correlated ECS-style JSON logs",
+  "description": "Infrastructure entry point for the Azure Functions commerce simulator",
   "scripts": {
-    "start": "node src/server.js",
-    "worker": "node src/worker.js",
-    "test": "node --test"
+    "backfill": "node scripts/backfill-history.cjs",
+    "test": "npm test --prefix function-app"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

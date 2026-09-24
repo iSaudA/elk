@@ -14,30 +14,18 @@ write_files:
     owner: root:root
     content: |
       KIBANA_HOSTNAME=${kibana_hostname}
+      APP_URL=${app_url}
       STACK_VERSION=8.19.21
-      REQUESTS_PER_MINUTE=30
-      GHOST_ORDER_EVERY=20
       ELASTIC_PASSWORD=${elastic_password}
       KIBANA_PASSWORD=${kibana_password}
       LOGSTASH_PASSWORD=${logstash_password}
+      LOG_INGEST_TOKEN=${log_ingest_token}
+      ANALYTICS_EXPORT_ENABLED=${analytics_export_enabled}
+      ANALYTICS_INGEST_URL=${analytics_ingest_url}
+      ANALYTICS_INGEST_TOKEN=${analytics_ingest_token}
   - path: /opt/ayn-al-sijill/compose.azure.yaml
     encoding: b64
     content: ${compose}
-  - path: /opt/ayn-al-sijill/Dockerfile
-    encoding: b64
-    content: ${dockerfile}
-  - path: /opt/ayn-al-sijill/package.json
-    encoding: b64
-    content: ${package_json}
-  - path: /opt/ayn-al-sijill/src/server.js
-    encoding: b64
-    content: ${server_js}
-  - path: /opt/ayn-al-sijill/test/server.test.js
-    encoding: b64
-    content: ${server_test}
-  - path: /opt/ayn-al-sijill/src/worker.js
-    encoding: b64
-    content: ${worker_js}
   - path: /opt/ayn-al-sijill/logstash/pipeline/logstash.conf
     encoding: b64
     content: ${logstash}
