@@ -38,6 +38,20 @@ variable "ssh_public_key" {
   type        = string
 }
 
+variable "operator_principal_object_id" {
+  description = "Optional Microsoft Entra object ID for the human break-glass operator. Defaults to the identity running Terraform."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "automation_principal_object_id" {
+  description = "Optional Microsoft Entra object ID used by CI/CD. When set, it receives the Key Vault permissions needed by Terraform and deployment scripts."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "auto_shutdown_enabled" {
   description = "Shut down the demo VM every night to protect the trial credit."
   type        = bool

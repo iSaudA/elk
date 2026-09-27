@@ -5,6 +5,13 @@
 # External reporting clients can connect to the SQL view after their report is approved.
 data "azurerm_client_config" "current" {}
 
+locals {
+  operator_principal_object_id = coalesce(
+    var.operator_principal_object_id,
+    data.azurerm_client_config.current.object_id,
+  )
+}
+
 resource "random_password" "analytics_ingest_token" {
   count   = var.enable_analytics_export ? 1 : 0
   length  = 32
@@ -109,7 +116,16 @@ resource "azurerm_key_vault_access_policy" "deployer" {
   count        = var.enable_analytics_export ? 1 : 0
   key_vault_id = azurerm_key_vault.analytics[0].id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
+  object_id    = local.operator_principal_object_id
+
+  secret_permissions = ["Get", "List", "Set", "Delete", "Recover"]
+}
+
+resource "azurerm_key_vault_access_policy" "automation" {
+  count        = var.enable_analytics_export && var.automation_principal_object_id != null ? 1 : 0
+  key_vault_id = azurerm_key_vault.analytics[0].id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = var.automation_principal_object_id
 
   secret_permissions = ["Get", "List", "Set", "Delete", "Recover"]
 }
@@ -130,7 +146,10 @@ resource "azurerm_key_vault_secret" "analytics_sql_connection" {
   value        = local.analytics_sql_connection_string
   key_vault_id = azurerm_key_vault.analytics[0].id
 
-  depends_on = [azurerm_key_vault_access_policy.deployer]
+  depends_on = [
+    azurerm_key_vault_access_policy.deployer,
+    azurerm_key_vault_access_policy.automation,
+  ]
 }
 
 resource "azurerm_key_vault_secret" "analytics_ingest_token" {
@@ -139,7 +158,10 @@ resource "azurerm_key_vault_secret" "analytics_ingest_token" {
   value        = random_password.analytics_ingest_token[0].result
   key_vault_id = azurerm_key_vault.analytics[0].id
 
-  depends_on = [azurerm_key_vault_access_policy.deployer]
+  depends_on = [
+    azurerm_key_vault_access_policy.deployer,
+    azurerm_key_vault_access_policy.automation,
+  ]
 }
 
 resource "azurerm_key_vault_secret" "log_ingest_token" {
@@ -148,7 +170,10 @@ resource "azurerm_key_vault_secret" "log_ingest_token" {
   value        = random_password.log_ingest.result
   key_vault_id = azurerm_key_vault.analytics[0].id
 
-  depends_on = [azurerm_key_vault_access_policy.deployer]
+  depends_on = [
+    azurerm_key_vault_access_policy.deployer,
+    azurerm_key_vault_access_policy.automation,
+  ]
 }
 
 resource "azurerm_function_app_flex_consumption" "analytics" {

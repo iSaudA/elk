@@ -1,0 +1,210 @@
+name: Terraform deploy to Azure dev
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/terraform-deploy.yml
+      - Caddyfile
+      - compose.azure.yaml
+      - filebeat/**
+      - function-app/**
+      - kibana/**
+      - logstash/**
+      - package.json
+      - scripts/configure-analytics.sh
+      - scripts/run-remote.sh
+      - scripts/setup.sh
+      - scripts/validate-analytics.sh
+      - scripts/validate.sh
+      - terraform/**
+  workflow_dispatch:
+    inputs:
+      allow_destroy:
+        description: Allow a plan containing delete or replacement actions
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-azure-dev
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_DATA_DIR: ${{ github.workspace }}/.deployment/terraform-data
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_STATE_RESOURCE_GROUP: ${{ vars.TF_STATE_RESOURCE_GROUP }}
+  TF_STATE_STORAGE_ACCOUNT: ${{ vars.TF_STATE_STORAGE_ACCOUNT }}
+  TF_STATE_CONTAINER: ${{ vars.TF_STATE_CONTAINER }}
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+  TF_VAR_location: ${{ vars.TF_VAR_LOCATION }}
+  TF_VAR_vm_size: ${{ vars.TF_VAR_VM_SIZE }}
+  TF_VAR_ssh_public_key: ${{ vars.TF_VAR_SSH_PUBLIC_KEY }}
+  TF_VAR_operator_principal_object_id: ${{ vars.TF_VAR_OPERATOR_PRINCIPAL_OBJECT_ID }}
+  TF_VAR_automation_principal_object_id: ${{ vars.TF_VAR_AUTOMATION_PRINCIPAL_OBJECT_ID }}
+
+jobs:
+  plan:
+    name: Plan merged dev revision
+    if: github.ref == 'refs/heads/dev' && vars.TERRAFORM_CICD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      destroy_count: ${{ steps.summary.outputs.destroy_count }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Verify deployment configuration
+        shell: bash
+        run: |
+          required=(
+            ARM_CLIENT_ID ARM_TENANT_ID ARM_SUBSCRIPTION_ID
+            TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY
+            TF_VAR_location TF_VAR_vm_size TF_VAR_ssh_public_key
+            TF_VAR_operator_principal_object_id TF_VAR_automation_principal_object_id
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing GitHub Actions variable: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_version: "1.16.1"
+          terraform_wrapper: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: function-app/package-lock.json
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Install production Function dependencies
+        run: npm ci --omit=dev --prefix function-app
+
+      - name: Initialize remote state with OIDC
+        shell: bash
+        run: |
+          terraform -chdir=terraform init -reconfigure -input=false \
+            -backend-config="resource_group_name=$TF_STATE_RESOURCE_GROUP" \
+            -backend-config="storage_account_name=$TF_STATE_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TF_STATE_CONTAINER" \
+            -backend-config="key=$TF_STATE_KEY" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Create saved plan
+        run: terraform -chdir=terraform plan -input=false -lock-timeout=5m -out=../.deployment/dev.tfplan
+
+      - name: Create safe plan summary
+        id: summary
+        shell: bash
+        run: ./scripts/terraform-plan-summary.sh .deployment/dev.tfplan | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Block destructive changes
+        if: steps.summary.outputs.destroy_count != '0' && inputs.allow_destroy != true
+        shell: bash
+        run: |
+          echo "Plan contains ${{ steps.summary.outputs.destroy_count }} destructive change(s)." >&2
+          echo "Review the plan, then run this workflow manually with allow_destroy enabled if intentional." >&2
+          exit 1
+
+      - name: Upload exact plan and Function package
+        shell: bash
+        run: |
+          mkdir -p artifact
+          cp .deployment/dev.tfplan artifact/dev.tfplan
+          cp terraform/.analytics-function.zip artifact/analytics-function.zip
+
+      - name: Store exact plan and Function package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: terraform-dev-plan-${{ github.run_id }}
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 1
+
+  apply:
+    name: Approve and apply
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: azure-dev
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_version: "1.16.1"
+          terraform_wrapper: false
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Initialize remote state with OIDC
+        shell: bash
+        run: |
+          terraform -chdir=terraform init -reconfigure -input=false \
+            -backend-config="resource_group_name=$TF_STATE_RESOURCE_GROUP" \
+            -backend-config="storage_account_name=$TF_STATE_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TF_STATE_CONTAINER" \
+            -backend-config="key=$TF_STATE_KEY" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Download approved plan
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: terraform-dev-plan-${{ github.run_id }}
+          path: artifact
+
+      - name: Restore Function package
+        run: cp artifact/analytics-function.zip terraform/.analytics-function.zip
+
+      - name: Apply exact saved plan
+        run: terraform -chdir=terraform apply -input=false ../artifact/dev.tfplan
+
+      - name: Publish Function and validate reporting path
+        run: ./scripts/configure-analytics.sh
+
+      - name: Validate VM services
+        shell: bash
+        run: |
+          resource_group=$(terraform -chdir=terraform output -raw resource_group_name)
+          vm_name=$(terraform -chdir=terraform output -raw vm_name)
+          ./scripts/run-remote.sh "$resource_group" "$vm_name" \
+            'cloud-init status --wait; cd /opt/ayn-al-sijill; docker compose -f compose.azure.yaml ps -a; ./scripts/validate.sh'

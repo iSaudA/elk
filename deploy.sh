@@ -97,5 +97,5 @@ else
   echo "Telegram skipped. Export TELEGRAM_BOT_TOKEN before deployment to configure it automatically."
 fi
 
-log "Deployment complete. Demo outputs, including generated credentials"
+log "Deployment complete. Secret outputs are redacted unless requested explicitly"
 terraform -chdir=terraform output

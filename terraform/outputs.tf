@@ -1,5 +1,5 @@
-# Demo convenience: generated credentials are intentionally visible in CLI outputs.
-# Production should remove nonsensitive(), mark secret outputs sensitive, and prefer managed identities or Key Vault.
+# Secret outputs stay in Terraform state but are redacted from normal CLI and CI logs.
+# An operator can still request one explicitly with: terraform output -raw OUTPUT_NAME
 output "resource_group_name" {
   value = azurerm_resource_group.this.name
 }
@@ -29,7 +29,8 @@ output "elastic_username" {
 }
 
 output "elastic_password" {
-  value = nonsensitive(random_password.elastic.result)
+  value     = random_password.elastic.result
+  sensitive = true
 }
 
 output "analytics_function_name" {
@@ -49,11 +50,13 @@ output "analytics_ingest_url" {
 }
 
 output "analytics_ingest_token" {
-  value = nonsensitive(var.enable_analytics_export ? random_password.analytics_ingest_token[0].result : null)
+  value     = var.enable_analytics_export ? random_password.analytics_ingest_token[0].result : null
+  sensitive = true
 }
 
 output "log_ingest_token" {
-  value = nonsensitive(random_password.log_ingest.result)
+  value     = random_password.log_ingest.result
+  sensitive = true
 }
 
 output "analytics_sql_server" {
@@ -69,5 +72,6 @@ output "analytics_sql_admin_login" {
 }
 
 output "analytics_sql_admin_password" {
-  value = nonsensitive(var.enable_analytics_export ? random_password.analytics_sql_admin[0].result : null)
+  value     = var.enable_analytics_export ? random_password.analytics_sql_admin[0].result : null
+  sensitive = true
 }

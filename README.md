@@ -28,7 +28,7 @@ az account show --query '{name:name,id:id,tenant:tenantId}' -o table
 ./deploy.sh
 ```
 
-`deploy.sh` prepares account-specific inputs, registers Azure providers, creates or reconnects the remote state backend, installs and tests the Function package, checks the Terraform plan, deploys the infrastructure, publishes the Function, validates the full Azure path, loads the historical dashboard baseline, and prints the endpoints and credentials.
+`deploy.sh` prepares account-specific inputs, registers Azure providers, creates or reconnects the remote state backend, installs and tests the Function package, checks the Terraform plan, deploys the infrastructure, publishes the Function, validates the full Azure path, loads the historical dashboard baseline, and prints the non-sensitive outputs.
 
 The script blocks any plan containing a delete or replacement unless you explicitly approve it:
 
@@ -53,16 +53,22 @@ Azure permissions, quota, and regional service availability still apply. The sig
 
 ## Find the deployed URLs and credentials
 
-The deployment prints every Terraform output at the end. You can display them again with:
+The deployment prints non-sensitive Terraform outputs at the end. You can display them again with:
 
 ```bash
 source .deployment/session.sh
 terraform -chdir=terraform output
 ```
 
-Open `kibana_dashboard_url` and sign in with `elastic_username` and `elastic_password`. The complete output inventory is documented in [DEPLOYMENT.md](DEPLOYMENT.md#post-deployment-outputs).
+Open `kibana_dashboard_url` and sign in with `elastic_username` and the explicitly requested password:
 
-This repository deliberately displays generated credentials in Terraform output because it is a short-lived development demo. For production, remove the `nonsensitive()` calls, mark secret outputs sensitive, use managed identities where possible, and store application secrets in Key Vault. Terraform state always contains generated secrets and must remain private.
+```bash
+terraform -chdir=terraform output -raw elastic_password
+```
+
+The complete output inventory is documented in [DEPLOYMENT.md](DEPLOYMENT.md#post-deployment-outputs).
+
+Generated credentials are marked sensitive and are redacted from normal Terraform and CI output. Terraform state still contains them and must remain private.
 
 ## Local checks
 
@@ -78,6 +84,7 @@ make validate
 ## More detail
 
 - [DEPLOYMENT.md](DEPLOYMENT.md): operations, validation, output inventory, Telegram, backfill, and teardown
+- [docs/CI_CD.md](docs/CI_CD.md): GitHub Actions, Azure OIDC, approvals, and one-time setup
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components and data flow
 - [docs/EVENTS.md](docs/EVENTS.md): event and failure-scenario catalogue
 - [docs/TEAM_GUIDE.md](docs/TEAM_GUIDE.md): infrastructure decisions and tradeoffs

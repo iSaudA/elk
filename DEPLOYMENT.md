@@ -22,11 +22,11 @@ source .deployment/session.sh
 
 ## Post-deployment outputs
 
-This development demo prints all outputs, including generated credentials:
+This development demo prints non-sensitive outputs. Request a secret explicitly only when needed:
 
 ```bash
 terraform -chdir=terraform output
-terraform -chdir=terraform output -raw OUTPUT_NAME
+terraform -chdir=terraform output -raw elastic_password
 ```
 
 | Output | Purpose |
@@ -53,7 +53,13 @@ terraform -chdir=terraform output -raw OUTPUT_NAME
 
 Open `kibana_dashboard_url` and sign in using `elastic_username` and `elastic_password`. Telegram credentials are supplied by the operator and stored in Key Vault as `telegram-bot-token` and `telegram-chat-id`; they are not Terraform outputs.
 
-Visible credentials are a deliberate convenience for this short-lived development project. In production, remove the `nonsensitive()` calls, mark password and token outputs sensitive, use managed identities where possible, and keep application secrets in Key Vault. Do not paste output into chat, documentation, screenshots, or tickets. Terraform state contains generated secrets and must remain private.
+Password and token outputs are marked sensitive, but an operator can still request a named value with `terraform output -raw OUTPUT_NAME`. Do not paste output into chat, documentation, screenshots, tickets, or CI logs. Terraform state contains generated secrets and must remain private.
+
+## GitHub Actions deployment
+
+The `dev` branch can deploy through GitHub Actions with Azure OIDC, a saved-plan
+approval gate and serialized applies. See [docs/CI_CD.md](docs/CI_CD.md) for the
+one-time identity bootstrap, repository settings and operating procedure.
 
 Inspect and validate the VM through Azure Run Command:
 

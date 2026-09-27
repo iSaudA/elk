@@ -2,6 +2,10 @@ location       = "eastus"
 vm_size        = "Standard_D4as_v5"
 ssh_public_key = "ssh-ed25519 AAAA... student@laptop"
 
+# Optional stable identities for CI/CD. Leave null for a local-only deployment.
+# operator_principal_object_id   = "00000000-0000-0000-0000-000000000000"
+# automation_principal_object_id = "00000000-0000-0000-0000-000000000000"
+
 tags = {
   course = "SDA"
   owner  = "Group01"
