@@ -36,22 +36,6 @@ variable "admin_username" {
 variable "ssh_public_key" {
   description = "OpenSSH public key used for the VM."
   type        = string
-  sensitive   = true
-}
-
-variable "allowed_cidrs" {
-  description = "Public IPv4/IPv6 CIDRs allowed to reach SSH."
-  type        = list(string)
-
-  validation {
-    condition = (
-      length(var.allowed_cidrs) > 0 &&
-      alltrue([for cidr in var.allowed_cidrs : can(cidrhost(cidr, 0))]) &&
-      !contains(var.allowed_cidrs, "0.0.0.0/0") &&
-      !contains(var.allowed_cidrs, "::/0")
-    )
-    error_message = "Provide at least one valid, restricted CIDR. Public 0.0.0.0/0 and ::/0 are not accepted."
-  }
 }
 
 variable "auto_shutdown_enabled" {

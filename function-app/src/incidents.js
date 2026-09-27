@@ -85,11 +85,6 @@ async function ensureSchema(pool) {
         CREATE INDEX IX_IncidentEvents_TraceId ON dbo.IncidentEvents(TraceId, EventTimestamp);
         CREATE INDEX IX_IncidentEvents_Action ON dbo.IncidentEvents(EventAction, EventTimestamp);
       END;
-      IF OBJECT_ID(N'dbo.PowerBIIncidentEvents', N'V') IS NULL
-      EXEC(N'CREATE VIEW dbo.PowerBIIncidentEvents AS
-        SELECT EventTimestamp, OrderId, TraceId, TransactionId, EventAction,
-               EventOutcome, Severity, Source, Message, IngestedAt
-        FROM dbo.IncidentEvents');
     `);
   }
   await schemaPromise;

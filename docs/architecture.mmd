@@ -8,8 +8,7 @@ flowchart LR
         stop["Auto-shutdown: 23:00 Riyadh"]
         function["Azure Functions: randomized shop API + timer"]
         telegram["Telegram Bot API: incident alerts"]
-        sql[("Azure SQL: Power BI reporting view")]
-        powerbi["Power BI Desktop / Service"]
+        sql[("Azure SQL: reporting view")]
         subgraph vm["One Ubuntu VM — Docker Compose"]
             proxy["Caddy: HTTPS"]
             kibana["Kibana: login and four investigation views"]
@@ -35,7 +34,6 @@ flowchart LR
     function -->|"Upsert incident events"| sql
     function -->|"Failed checkout summary"| telegram
     telegram -->|"Incident notification"| viewer
-    powerbi -->|"Azure SQL connector"| sql
     terraform -.->|"Provision"| vm
     terraform -.->|"Save state"| state
     start -.->|"Start VM"| vm

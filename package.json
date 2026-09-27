@@ -6,7 +6,8 @@
   "description": "Infrastructure entry point for the Azure Functions commerce simulator",
   "scripts": {
     "backfill": "node scripts/backfill-history.cjs",
-    "test": "npm test --prefix function-app"
+    "test": "npm test --prefix function-app",
+    "dev:team": "npm run dev --prefix team-site"
   },
   "engines": {
     "node": ">=22"

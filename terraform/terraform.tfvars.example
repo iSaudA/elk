@@ -1,7 +1,6 @@
 location       = "eastus"
 vm_size        = "Standard_D4as_v5"
 ssh_public_key = "ssh-ed25519 AAAA... student@laptop"
-allowed_cidrs  = ["203.0.113.10/32"]
 
 tags = {
   course = "SDA"

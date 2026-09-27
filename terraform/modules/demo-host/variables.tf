@@ -23,17 +23,11 @@ variable "admin_username" {
 }
 
 variable "ssh_public_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "allowed_cidrs" {
-  type = list(string)
+  type = string
 }
 
 variable "custom_data" {
-  type      = string
-  sensitive = true
+  type = string
 }
 
 variable "auto_shutdown_enabled" {

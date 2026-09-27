@@ -1,0 +1,2 @@
+# Frame inspection only. Audio synthesis uses Python's standard library.
+Pillow==10.2.0

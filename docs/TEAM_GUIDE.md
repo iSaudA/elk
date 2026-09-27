@@ -36,7 +36,7 @@ Other notation used here:
 - `local.kibana_hostname`: a value calculated for reuse in this module.
 - `module.demo_host.vm_id`: an output from the child module.
 - `path.module`: the directory containing the current module's configuration.
-- `for_each`: creates one resource per map entry, such as SSH and app access rules.
+- `for_each`: creates one resource per map entry.
 - `jsonencode(...)`: turns Terraform values into JSON for the Azure workflow API.
 
 ## Why these files and modules?
@@ -57,11 +57,8 @@ For a GCP comparison, the backend changes from `azurerm` to `gcs` and the resour
 | Azure Functions simulator and one ELK VM | Keeps synthetic traffic serverless while retaining the existing searchable ELK demo; no real commerce database or payments | Demo scope, not high availability |
 | Generated credentials in state/custom data | Makes initial setup self-contained; base64 encoding does not protect them | Demo credential-management limitation |
 | Logic App startup | A separate Azure service can start a powered-off VM using narrowly scoped permissions | Project schedule choice |
-| GitHub OIDC | Allows GitHub to request Azure access without storing a client password | Optional automation mechanism |
 
-References: [cloud-init](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/using-cloud-init), [Terraform lifecycle](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle), [Compose readiness](https://docs.docker.com/compose/how-tos/startup-order/), [managed identities](https://learn.microsoft.com/en-us/azure/logic-apps/authenticate-with-managed-identity), [GitHub OIDC](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect).
-
-The optional GitHub identity script currently grants subscription Contributor. That role is broad but cannot create the custom role/assignment in `startup.tf`. Some setup errors are also suppressed by `|| true`. The authenticated CLI deployment was tested; do not present the entire GitHub deployment route as validated. An administrator must review its permissions before it is used for the full deployment. [Contributor permissions](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/privileged#contributor).
+References: [cloud-init](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/using-cloud-init), [Terraform lifecycle](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle), [Compose readiness](https://docs.docker.com/compose/how-tos/startup-order/), and [managed identities](https://learn.microsoft.com/en-us/azure/logic-apps/authenticate-with-managed-identity).
 
 ## Bash expressions the team should know
 

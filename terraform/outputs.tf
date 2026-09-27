@@ -1,5 +1,5 @@
-# Outputs expose values needed after deployment. sensitive hides ordinary CLI display;
-# it does not encrypt or remove the password from Terraform state.
+# Demo convenience: generated credentials are intentionally visible in CLI outputs.
+# Production should remove nonsensitive(), mark secret outputs sensitive, and prefer managed identities or Key Vault.
 output "resource_group_name" {
   value = azurerm_resource_group.this.name
 }
@@ -20,17 +20,16 @@ output "kibana_url" {
   value = "https://${local.kibana_hostname}"
 }
 
+output "kibana_dashboard_url" {
+  value = "https://${local.kibana_hostname}/app/dashboards#/view/ayn-al-sijill-operations"
+}
+
 output "elastic_username" {
   value = "elastic"
 }
 
 output "elastic_password" {
-  value     = random_password.elastic.result
-  sensitive = true
-}
-
-output "ssh_command" {
-  value = "ssh ${var.admin_username}@${module.demo_host.public_ip_address}"
+  value = nonsensitive(random_password.elastic.result)
 }
 
 output "analytics_function_name" {
@@ -50,13 +49,11 @@ output "analytics_ingest_url" {
 }
 
 output "analytics_ingest_token" {
-  value     = var.enable_analytics_export ? random_password.analytics_ingest_token[0].result : null
-  sensitive = true
+  value = nonsensitive(var.enable_analytics_export ? random_password.analytics_ingest_token[0].result : null)
 }
 
 output "log_ingest_token" {
-  value     = random_password.log_ingest.result
-  sensitive = true
+  value = nonsensitive(random_password.log_ingest.result)
 }
 
 output "analytics_sql_server" {
@@ -72,6 +69,5 @@ output "analytics_sql_admin_login" {
 }
 
 output "analytics_sql_admin_password" {
-  value     = var.enable_analytics_export ? random_password.analytics_sql_admin[0].result : null
-  sensitive = true
+  value = nonsensitive(var.enable_analytics_export ? random_password.analytics_sql_admin[0].result : null)
 }

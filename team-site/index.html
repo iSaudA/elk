@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Meet Saud, Norah, Retaj, and Lama. Four different backgrounds, brought together by the SDA Cloud Computing Bootcamp.">
+  <meta name="theme-color" content="#f7f4ec">
+  <title>Meet the team | SDA</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#team">Skip to the team</a>
+  <header class="site-header page-width" id="top">
+    <a class="wordmark" href="#top" aria-label="SDA team home"><span class="brand-mark" aria-hidden="true">✳</span> the collective<span class="brand-period">.</span></a>
+  </header>
+  <main>
+    <section class="team-section page-width" id="team" aria-labelledby="team-title">
+      <div class="section-heading team-intro"><div><p class="team-kicker">SDA · Cloud Computing Bootcamp</p><h1 id="team-title">Meet the team<span class="accent-period">.</span></h1></div><p>Explore our backgrounds,<br>experience, and resumes.</p></div>
+      <p id="editing-notice" class="editing-notice" hidden>Team editing is open. Click a card, then choose Edit profile. Saved changes are visible to everyone.</p>
+      <p id="site-status" class="site-status" role="status"></p>
+      <div class="team-grid" id="team-grid"></div>
+      <noscript><p>Meet Saud (multidisciplinary), Norah (IT and business analysis), Retaj, and Lama (cybersecurity). All four are SDA Cloud Computing Bootcamp graduates. Enable JavaScript to open individual profiles and resumes.</p></noscript>
+    </section>
+    <section class="shared-section page-width" aria-labelledby="shared-title">
+      <div class="shared-graphic" aria-hidden="true"><span></span><span></span><span></span><span></span><div>4 → 1</div></div>
+      <div class="shared-copy"><h2 id="shared-title">How we came together.</h2><p>We met at SDA’s Cloud Computing Bootcamp and formed this team. Coming from different backgrounds, we learned from each other, worked through challenges together, and put our skills into practice through a shared project.</p></div>
+    </section>
+  </main>
+  <footer class="page-width site-footer"><span class="footer-note">Made of different minds.</span><span>SDA Cloud Computing Bootcamp</span></footer>
+  <dialog id="profile-dialog" aria-labelledby="profile-name">
+    <div class="dialog-shell">
+      <div class="dialog-top"><span>Meet the team</span><button class="icon-button" id="close-dialog" aria-label="Close profile">×</button></div>
+      <div class="profile-title"><div class="profile-mark" id="profile-mark" aria-hidden="true"></div><div><p id="profile-discipline"></p><h2 id="profile-name" tabindex="-1"></h2></div></div>
+      <div class="profile-actions" id="profile-actions"></div>
+      <p id="resume-availability" class="resume-availability">Resume coming soon.</p>
+      <div id="profile-overview"></div>
+      <form id="profile-editor" hidden>
+        <p class="editor-note">Update your profile and upload your CV. Saving publishes your changes to the website for everyone.</p>
+        <fieldset id="editor-fields">
+          <label>Full name<input name="name" required maxlength="100" autocomplete="name"></label>
+          <label>Card title<input name="role" required maxlength="80"><small>For example: The systems thinker.</small></label>
+          <label>Discipline<input name="discipline" required maxlength="100"><small>For example: IT &amp; Business Analysis.</small></label>
+          <label>Card introduction<textarea name="description" maxlength="600" rows="3"></textarea></label>
+          <label>About you<textarea name="summary" maxlength="3000" rows="4"></textarea></label>
+          <label>Areas of focus<textarea name="skills" maxlength="1300" rows="3"></textarea><small>One per line, or separated by commas. Up to 16.</small></label>
+          <label>Education<textarea name="education" maxlength="5000" rows="4"></textarea></label>
+          <label>Experience &amp; projects<textarea name="experience" maxlength="8000" rows="4"></textarea></label>
+          <label>GitHub<input name="github" maxlength="200" placeholder="Username or GitHub profile URL" autocapitalize="none" spellcheck="false"></label>
+          <label>LinkedIn<input name="linkedin" type="url" maxlength="300" placeholder="https://www.linkedin.com/in/your-name" autocapitalize="none" spellcheck="false"></label>
+          <div class="cv-field">
+            <label>CV / resume (PDF)<input id="cv-upload" name="cv" type="file" accept=".pdf,application/pdf" aria-describedby="cv-help"></label>
+            <p id="cv-help">PDF up to 3 MB. Your CV will be viewable and downloadable on your profile.</p>
+            <p id="current-cv"></p>
+            <label class="checkbox-label" id="remove-cv-label" hidden><input type="checkbox" name="removeCv"> Remove the current CV when saving</label>
+          </div>
+          <div class="editor-buttons"><button type="submit" class="button button-solid" id="save-profile">Save to website</button><button type="button" class="button" id="cancel-editor">Cancel</button></div>
+        </fieldset>
+      </form>
+      <p id="editor-status" class="editor-status" role="status" tabindex="-1"></p>
+    </div>
+  </dialog>
+  <dialog id="pdf-dialog" class="pdf-dialog" aria-labelledby="pdf-title">
+    <div class="pdf-shell">
+      <div class="dialog-top"><h2 id="pdf-title">Resume</h2><button class="icon-button" id="close-pdf" aria-label="Close resume">×</button></div>
+      <div id="pdf-links" class="pdf-links" hidden>
+        <a id="pdf-download" class="button button-solid" download>Download PDF ↓</a>
+        <a id="pdf-open" class="button" target="_blank" rel="noopener">Open in tab ↗</a>
+        <p>If the preview does not appear, open it in a new tab.</p>
+      </div>
+      <p id="pdf-status" class="pdf-status" role="status"></p>
+      <div id="pdf-content"></div>
+    </div>
+  </dialog>
+</body>
+</html>

@@ -34,7 +34,8 @@ elif [[ ${#missing[@]} -gt 0 ]]; then
   exit 1
 fi
 
-# Confirm the selected Function runtime and SQL serverless SKU exist in East US.
+# Confirm the selected Function runtime and SQL serverless SKU are available.
+analytics_sql_location=${TF_VAR_analytics_sql_location:-centralus}
 az functionapp list-runtimes --os linux --query "[?contains(to_string(@), 'node') || contains(to_string(@), 'Node')]" -o none
-az sql db list-editions --location eastus --query "[?name=='GeneralPurpose'].name | [0]" -o tsv | grep -q .
+az sql db list-editions --location "$analytics_sql_location" --query "[?name=='GeneralPurpose'].name | [0]" -o tsv | grep -q .
 echo "Azure prerequisites are ready."

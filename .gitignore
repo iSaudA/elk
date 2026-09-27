@@ -1,10 +1,25 @@
+# Local secrets and deployment state
 .env
+.env.*
+!.env.example
+.deployment/
 backend.hcl
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Terraform-generated files
 terraform/.terraform/
 terraform/*.tfstate*
 terraform/*.tfplan
 terraform/.analytics-function.zip
 crash.log
 
-.deployment/
-function-app/node_modules/
+# JavaScript dependencies
+node_modules/
+
+# Private copies of team profiles and CVs
+.backups/

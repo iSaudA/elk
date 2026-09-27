@@ -31,11 +31,12 @@ remove_staging_blob() {
     --only-show-errors --output none >/dev/null 2>&1 || true
 }
 
+if [[ "${SKIP_FUNCTION_DEPLOY:-false}" != "true" ]]; then
 az resource show --resource-group "$resource_group" --name "$function_name" \
   --resource-type Microsoft.Web/sites --api-version 2024-04-01 \
   --query properties.state -o tsv | grep -qx Running
 az functionapp config appsettings delete --resource-group "$resource_group" --name "$function_name" \
-  --setting-names SCM_DO_BUILD_DURING_DEPLOYMENT ENABLE_ORYX_BUILD --output none
+  --setting-names SCM_DO_BUILD_DURING_DEPLOYMENT ENABLE_ORYX_BUILD --output none || true
 # Deploy through the Flex Consumption OneDeploy ARM extension. Azure CLI 2.90
 # can return a gateway error for this operation even when Azure accepts it, so
 # use the documented package URI contract and verify the deployment record.
@@ -68,7 +69,22 @@ done
   exit 1
 }
 deployment_id=$(awk 'BEGIN { RS = "<!DOCTYPE html>" } NR == 1 { print; exit }' "$one_deploy_response" \
-  | jq -er '.properties.deployment.id')
+  | jq -er '.properties.deployment.id // .properties.id // empty' || true)
+if [[ -z "$deployment_id" ]]; then
+  for attempt in $(seq 1 12); do
+    deployment_http=$(curl -sS --max-time 60 -o "$deployment_response" -w '%{http_code}' \
+      -H "Authorization: Bearer $management_token" \
+      "https://management.azure.com/subscriptions/$subscription_id/resourceGroups/$resource_group/providers/Microsoft.Web/sites/$function_name/deployments?api-version=2024-04-01") \
+      || deployment_http=000
+    if [[ "$deployment_http" == 200 ]]; then
+      deployment_id=$(awk 'BEGIN { RS = "<!DOCTYPE html>" } NR == 1 { print; exit }' "$deployment_response" \
+        | jq -er '.value | sort_by(.properties.received_time) | last | .properties.id // empty' || true)
+      [[ -n "$deployment_id" ]] && break
+    fi
+    sleep 5
+  done
+fi
+[[ -n "$deployment_id" ]] || { echo "OneDeploy did not return a deployment identifier." >&2; exit 1; }
 deployment_complete=false
 for attempt in $(seq 1 60); do
   deployment_http=$(curl -sS --max-time 60 -o "$deployment_response" -w '%{http_code}' \
@@ -97,6 +113,7 @@ done
 remove_staging_blob
 cleanup_deployment_files
 trap - EXIT
+fi
 functions_ready=false
 for attempt in $(seq 1 18); do
   if az functionapp function list --resource-group "$resource_group" --name "$function_name" \
@@ -119,6 +136,7 @@ printf -v quoted_log_token '%q' "$log_ingest_token"
 printf -v quoted_app_url '%q' "$app_url"
 
 remote_script="set -eu
+cloud-init status --wait
 install -d -m 0755 /opt/ayn-al-sijill/logstash/pipeline
 printf '%s' '$compose_b64' | base64 -d > /opt/ayn-al-sijill/compose.azure.yaml
 printf '%s' '$caddy_b64' | base64 -d > /opt/ayn-al-sijill/Caddyfile

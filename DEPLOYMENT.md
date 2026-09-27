@@ -1,31 +1,67 @@
 # Azure demo deployment
 
-Created on 6 September 2026 in **East US**, using `Standard_D4s_v7` (4 vCPU, 16 GiB). The existing v5/B4ms candidates were restricted for this subscription. Microsoft's retail API quoted **$0.265/hour for Linux compute**, excluding disk, public IP and state storage. Daily startup is scheduled for 09:00 and nightly shutdown for 23:00 Riyadh time. Startup runs in an Azure Consumption Logic App, using a managed identity permitted only to read/start this VM. The first scheduled start is 7 September 2026 at 09:00 Riyadh time.
+Rebuilt on 25 September 2026 in **East US**, using `Standard_D4s_v7` (4 vCPU, 16 GiB). Daily startup is scheduled for 09:00 and nightly shutdown for 23:00 Riyadh time. Startup runs in an Azure Consumption Logic App, using a managed identity permitted only to read and start this VM.
 
 - Resource group: `rg-ayn-sijill`
 - VM: `vm-ayn-sijill`
-- Kibana: https://ayn-sijill-bc9bc4dc.eastus.cloudapp.azure.com
-- Shop Function: https://func-ayn-sijill-bc9bc4dc.azurewebsites.net/api/shop
-- Reporting Function: https://func-ayn-sijill-bc9bc4dc.azurewebsites.net/api/incidents
-- Azure SQL: `sql-ayn-sijill-bc9bc4dc-centralus.database.windows.net` / `sqldb-ayn-sijill-analytics`
+- Runtime endpoints: retrieve `kibana_url`, `app_url`, and `analytics_ingest_url` from Terraform outputs.
+- Azure SQL: retrieve `analytics_sql_server` and `analytics_sql_database` from Terraform outputs.
 - Terraform state: `rg-ayn-tfstate`, in East US
 
-From `replica-shop`, use the ignored session files to manage this deployment:
+From the repository root, the normal deployment is one command:
+
+```bash
+./deploy.sh
+```
+
+The script assumes the Azure CLI is authenticated and the intended subscription is selected. It creates the ignored local session files, connects the Azure Blob remote state backend, deploys and configures the environment, validates it, loads the dashboard baseline, and prints the outputs. For manual operation or a new terminal, load the generated session first:
 
 ```bash
 source .deployment/session.sh
-# Password stays out of documentation and Git. Username: elastic.
-terraform -chdir=terraform output -raw elastic_password
-ssh -i .deployment/id_ed25519 azureuser@172.191.53.102
 ```
 
-On the VM:
+## Post-deployment outputs
+
+This development demo prints all outputs, including generated credentials:
 
 ```bash
-sudo cloud-init status --wait
-cd /opt/ayn-al-sijill
-sudo docker compose -f compose.azure.yaml ps -a
-sudo scripts/validate.sh
+terraform -chdir=terraform output
+terraform -chdir=terraform output -raw OUTPUT_NAME
+```
+
+| Output | Purpose |
+| --- | --- |
+| `kibana_url` | Public HTTPS Kibana address |
+| `kibana_dashboard_url` | Direct link to the AYN AL-SIJILL Operations dashboard |
+| `elastic_username` | Kibana administrator username |
+| `elastic_password` | Kibana administrator password |
+| `app_url` | Synthetic shop API base URL |
+| `log_ingest_token` | `x-ayn-shop-token` value and `/ingest` Basic password for user `azure-function` |
+| `analytics_ingest_url` | Direct Azure SQL reporting Function endpoint |
+| `analytics_ingest_token` | `x-ayn-token` value for the reporting Function |
+| `analytics_sql_server` | Azure SQL server hostname |
+| `analytics_sql_database` | Azure SQL database name |
+| `analytics_sql_admin_login` | Azure SQL administrator username |
+| `analytics_sql_admin_password` | Azure SQL administrator password |
+| `resource_group_name` | Workload resource group |
+| `vm_name` | ELK virtual machine name |
+| `public_ip_address` | VM public IP used by its HTTPS endpoint |
+| `analytics_function_name` | Function App resource name |
+| `analytics_storage_account_name` | Function package storage account |
+| `analytics_key_vault_name` | Key Vault containing runtime and optional Telegram secrets |
+| `startup_workflow_id` | Daily VM startup Logic App resource ID |
+
+Open `kibana_dashboard_url` and sign in using `elastic_username` and `elastic_password`. Telegram credentials are supplied by the operator and stored in Key Vault as `telegram-bot-token` and `telegram-chat-id`; they are not Terraform outputs.
+
+Visible credentials are a deliberate convenience for this short-lived development project. In production, remove the `nonsensitive()` calls, mark password and token outputs sensitive, use managed identities where possible, and keep application secrets in Key Vault. Do not paste output into chat, documentation, screenshots, or tickets. Terraform state contains generated secrets and must remain private.
+
+Inspect and validate the VM through Azure Run Command:
+
+```bash
+resource_group=$(terraform -chdir=terraform output -raw resource_group_name)
+vm_name=$(terraform -chdir=terraform output -raw vm_name)
+./scripts/run-remote.sh "$resource_group" "$vm_name" \
+  'cloud-init status --wait; cd /opt/ayn-al-sijill; docker compose -f compose.azure.yaml ps -a; ./scripts/validate.sh'
 ```
 
 To start or stop manually (the daily schedule still applies):
@@ -36,23 +72,20 @@ az vm deallocate --resource-group rg-ayn-sijill --name vm-ayn-sijill
 az vm start --resource-group rg-ayn-sijill --name vm-ayn-sijill
 ```
 
-To remove the workload, from `replica-shop`:
+To remove the workload, from the repository root:
 
 ```bash
 source .deployment/session.sh
 terraform -chdir=terraform destroy -var-file=../.deployment/inputs.json
 ```
 
-The state storage account is separate and remains after workload destruction. Keep `.deployment/` private; it contains the SSH key, deployment inputs, Terraform cache and plans. 
-
 ## Verification completed
 
 - Terraform apply succeeded; cloud-init completed successfully.
-- The original three Node application tests passed inside the Azure container before the serverless migration.
+- All 18 Node application tests passed in WSL.
 - Normal checkout returned HTTP 201; Ghost Order returned HTTP 500. Both produced every required event with matching order and trace IDs in Elasticsearch.
 - The Flex Consumption Function registered all five HTTP/timer functions; its health endpoint returned HTTP 200 and unauthenticated reporting access returned HTTP 401.
 - A unique probe passed through Caddy and Logstash, was accepted by the Function, and was read back from Azure SQL by exact event ID.
-- `dbo.PowerBIIncidentEvents` exists with the expected 10-column schema and returned live rows through a direct encrypted Azure SQL connection.
 - Kibana saved-object import exited successfully and the Operations dashboard was retrieved through authenticated public HTTPS.
 - Linux and Docker ingestion were confirmed (4,143 and 1,071 indexed events at check time).
 - Public login returned HTTP 200 with a valid TLS certificate; HTTP redirected to HTTPS with 308. The dashboard API returned 401 without credentials.
@@ -60,7 +93,7 @@ The state storage account is separate and remains after workload destruction. Ke
 
 ## Reporting branch status
 
-The `Logstash HTTP output -> Azure Function -> Azure SQL -> Power BI` reporting branch was deployed and validated on 20 September 2026. The Function sends synthetic shop events to the authenticated `https://<Kibana host>/ingest` route; Caddy proxies them to Logstash, which indexes Elasticsearch and copies the events to the reporting Function. The Function runs on Flex Consumption in East US 2, while SQL runs in Central US because this subscription restricted SQL provisioning in the eastern regions.
+The `Logstash HTTP output -> Azure Function -> Azure SQL` reporting branch was deployed and validated again during the 25 September 2026 rebuild. The Function sends synthetic shop events to the authenticated `https://<Kibana host>/ingest` route; Caddy proxies them to Logstash, which indexes Elasticsearch and copies the events to the reporting Function. The Function runs on Flex Consumption in East US 2, while SQL runs in Central US because this subscription restricted SQL provisioning in the eastern regions.
 
 To redeploy the reporting branch after a code or pipeline change:
 
@@ -99,7 +132,7 @@ the Key Vault secrets remain in place.
 
 ## Historical chart baseline
 
-Seed the dashboard and Power BI data source from 1 January 2026 through the
+Seed the Kibana dashboard from 1 January 2026 through the
 current time after the reporting path is healthy:
 
 ```bash
@@ -113,11 +146,6 @@ unset LOG_INGEST_URL LOG_INGEST_TOKEN
 The default density is four checkout journeys per day. Stable event IDs make
 the baseline safe to rerun, and `labels.generation` distinguishes historical
 records from ongoing randomized traffic.
-
-Power BI Desktop should use the Azure SQL connector with the Terraform outputs `analytics_sql_server`, `analytics_sql_database`, `analytics_sql_admin_login`, and the sensitive `analytics_sql_admin_password`, then select `dbo.PowerBIIncidentEvents`. Prefer Import for this small demo; use DirectQuery only when live queries are required. The database/view are ready, but a `.pbix` report has not been authored or published. This demo allows Azure services through the SQL firewall; replace the SQL administrator with a least-privilege reporting identity and use private networking before treating the path as production-ready.
-
-Remaining proposal work: author and publish the Power BI report, add KPI visualizations, decide whether Nginx logs are still required, and complete a destroy-and-rebuild rehearsal. Recheck current pricing before relying on the historical estimate above.
-
 
 To pause automatic startup while keeping the VM available for manual use:
 

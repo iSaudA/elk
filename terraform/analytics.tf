@@ -1,8 +1,8 @@
 # Optional reporting branch:
-# Logstash HTTPS output -> Azure Function -> Azure SQL -> Power BI.
+# Logstash HTTPS output -> Azure Function -> Azure SQL reporting.
 # The Function package is built by archive_file and deployed explicitly after
 # infrastructure creation because Flex Consumption does not expose legacy Kudu.
-# Power BI connects to the database/view through its native Azure SQL connector.
+# External reporting clients can connect to the SQL view after their report is approved.
 data "azurerm_client_config" "current" {}
 
 resource "random_password" "analytics_ingest_token" {
@@ -82,7 +82,7 @@ resource "azurerm_mssql_database" "analytics" {
   tags                        = local.tags
 }
 
-# Azure Functions and the Power BI service reach the public SQL endpoint through
+# Azure Functions and approved reporting clients reach the public SQL endpoint through
 # Azure networking. Replace this rule with private endpoints for production.
 resource "azurerm_mssql_firewall_rule" "azure_services" {
   count            = var.enable_analytics_export ? 1 : 0

@@ -18,30 +18,6 @@ resource "azurerm_network_security_group" "this" {
   tags                = var.tags
 }
 
-# Keep administrative SSH restricted to the operator CIDRs. The shop API now
-# runs in Azure Functions, so the VM no longer exposes application port 3000.
-locals {
-  inbound_ports = {
-    ssh = { priority = 100, port = "22" }
-  }
-}
-
-resource "azurerm_network_security_rule" "inbound" {
-  for_each = local.inbound_ports
-
-  name                        = "allow-${each.key}"
-  priority                    = each.value.priority
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = each.value.port
-  source_address_prefixes     = var.allowed_cidrs
-  destination_address_prefix  = "*"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = azurerm_network_security_group.this.name
-}
-
 resource "azurerm_network_interface" "this" {
   name                = "nic-${var.name}"
   resource_group_name = var.resource_group_name

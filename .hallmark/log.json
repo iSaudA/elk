@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-09-26",
+    "macrostructure": "Team directory",
+    "theme": "Manifesto",
+    "enrichment": "Existing symbolic profile illustrations",
+    "brief": "Remove the oversized hero and lead directly with the team, their backgrounds, and resumes."
+  },
+  {
+    "date": "2026-09-25",
+    "macrostructure": "Marquee Hero",
+    "theme": "Manifesto",
+    "nav": "N9",
+    "footer": "Ft2",
+    "enrichment": "Typographic hero; four symbolic SVG profile illustrations",
+    "brief": "Four SDA bootcamp graduates, individual profiles, GitHub links, and editable resume drafts."
+  }
+]

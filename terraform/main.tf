@@ -50,7 +50,7 @@ locals {
 
   # Embed the first release so provisioning does not depend on a published GitHub repo.
   # Base64 is transport encoding, not encryption. Generated secrets are held in state.
-  # Subsequent application updates use scripts/deploy-azure.sh.
+  # Subsequent application updates use scripts/configure-analytics.sh.
   cloud_init = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     kibana_hostname          = local.kibana_hostname
     app_url                  = var.enable_analytics_export ? local.shop_function_url : "disabled"
@@ -105,7 +105,6 @@ module "demo_host" {
   vm_size               = var.vm_size
   admin_username        = var.admin_username
   ssh_public_key        = var.ssh_public_key
-  allowed_cidrs         = var.allowed_cidrs
   domain_name_label     = "${var.project_name}-${random_id.dns.hex}"
   custom_data           = base64encode(local.cloud_init)
   auto_shutdown_enabled = var.auto_shutdown_enabled

@@ -1,0 +1,10 @@
+{
+  "date": "2026-09-25",
+  "target": "team-site",
+  "framework": "Static HTML, CSS, JavaScript modules",
+  "existingWebsite": false,
+  "existingFonts": null,
+  "existingPalette": null,
+  "motion": "CSS hover rotation only",
+  "source": "Root package.json contains infrastructure scripts; no existing web frontend."
+}
