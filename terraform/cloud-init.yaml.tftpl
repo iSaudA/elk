@@ -1,0 +1,50 @@
+#cloud-config
+# First-boot template rendered by Terraform; keep #cloud-config as the first line.
+# Reference: https://learn.microsoft.com/en-us/azure/virtual-machines/linux/using-cloud-init
+# Base64 safely carries file text through the template; it does not hide secrets.
+# Demo limitation: credentials pass through VM custom data and Terraform state.
+package_update: false
+
+write_files:
+  - path: /opt/ayn-al-sijill/Caddyfile
+    encoding: b64
+    content: ${caddyfile}
+  - path: /opt/ayn-al-sijill/.env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      KIBANA_HOSTNAME=${kibana_hostname}
+      APP_URL=${app_url}
+      STACK_VERSION=8.19.21
+      ELASTIC_PASSWORD=${elastic_password}
+      KIBANA_PASSWORD=${kibana_password}
+      LOGSTASH_PASSWORD=${logstash_password}
+      LOG_INGEST_TOKEN=${log_ingest_token}
+      ANALYTICS_EXPORT_ENABLED=${analytics_export_enabled}
+      ANALYTICS_INGEST_URL=${analytics_ingest_url}
+      ANALYTICS_INGEST_TOKEN=${analytics_ingest_token}
+  - path: /opt/ayn-al-sijill/compose.azure.yaml
+    encoding: b64
+    content: ${compose}
+  - path: /opt/ayn-al-sijill/logstash/pipeline/logstash.conf
+    encoding: b64
+    content: ${logstash}
+  - path: /opt/ayn-al-sijill/filebeat/filebeat.yml
+    encoding: b64
+    content: ${filebeat}
+  - path: /opt/ayn-al-sijill/kibana/objects.ndjson
+    encoding: b64
+    content: ${kibana_objects}
+  - path: /opt/ayn-al-sijill/scripts/setup.sh
+    permissions: "0755"
+    encoding: b64
+    content: ${setup_script}
+  - path: /opt/ayn-al-sijill/scripts/validate.sh
+    permissions: "0755"
+    encoding: b64
+    content: ${validate_script}
+
+runcmd:
+  - [bash, /opt/ayn-al-sijill/scripts/setup.sh]
+
+final_message: "AYN AL-SIJILL bootstrap finished"

@@ -1,0 +1,14 @@
+{
+  "name": "ayn-al-sijill-replica-shop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Infrastructure entry point for the Azure Functions commerce simulator",
+  "scripts": {
+    "backfill": "node scripts/backfill-history.cjs",
+    "test": "npm test --prefix function-app"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
