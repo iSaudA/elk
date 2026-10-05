@@ -1,0 +1,17 @@
+{
+  "name": "ayn-al-sijill-analytics-function",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Azure Functions commerce simulator and incident export for AYN AL-SIJILL",
+  "main": "src/functions.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.8.0",
+    "mssql": "^11.0.1"
+  }
+}
