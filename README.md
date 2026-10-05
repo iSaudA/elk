@@ -6,7 +6,7 @@ A payment can be authorized while order creation fails. AYN AL-SIJILL demonstrat
 
 Built on Azure with Terraform, Azure Functions, and the Elastic Stack. All customer journeys and payment events are synthetic.
 
-[Project report](report/output/AYN_AL_SIJILL_Project_Report_Final.pdf) · [Client presentation](presentation/AYN_AL_SIJILL_Final_Presentation.pptx) · [29-second demo](video/output/ayn-al-sijill-29s.mp4)
+[Read the project report](report/output/AYN_AL_SIJILL_Project_Report_Final.pdf)
 
 ## The checkout story
 
@@ -74,7 +74,7 @@ echo
 unset TELEGRAM_BOT_TOKEN
 ```
 
-In Azure Cloud Shell, upload and extract the submission ZIP, enter the extracted directory, confirm `az account show`, and run `./deploy.sh`.
+In Azure Cloud Shell, clone this repository, enter its directory, confirm `az account show`, and run `./deploy.sh`.
 
 Azure permissions, quota, and regional service availability still apply. The signed-in identity must be able to create resources, register providers, and create the VM startup role assignment. Owner access is the simplest choice for a disposable demo subscription.
 
@@ -115,7 +115,7 @@ make validate
 - [docs/CI_CD.md](docs/CI_CD.md): GitHub Actions, Azure OIDC, approvals, and one-time setup
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components and data flow
 - [docs/EVENTS.md](docs/EVENTS.md): event and failure-scenario catalogue
-- [docs/TEAM_GUIDE.md](docs/TEAM_GUIDE.md): infrastructure decisions and tradeoffs
+- [docs/DESIGN_DECISIONS.md](docs/DESIGN_DECISIONS.md): infrastructure decisions and tradeoffs
 
 ## Team
 

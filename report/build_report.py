@@ -199,37 +199,6 @@ def page_one(c):
     c.showPage()
 
 
-def service_chip(c, x, y, width, title, detail, accent):
-    rounded_box(c, x, y, width, 45, colors.white, RULE, 7)
-    c.setFillColor(accent)
-    c.rect(x, y, 4, 45, fill=1, stroke=0)
-    c.setFillColor(INK)
-    c.setFont("BodyBold", 8.2)
-    c.drawString(x + 12, y + 27, title)
-    c.setFillColor(MUTED)
-    c.setFont("Body", 6.6)
-    c.drawString(x + 12, y + 13, detail)
-
-
-def flow_node(c, x, y, width, title, detail, fill):
-    rounded_box(c, x, y, width, 51, fill, None, 8)
-    c.setFillColor(INK)
-    c.setFont("BodyBold", 8)
-    c.drawCentredString(x + width / 2, y + 31, title)
-    c.setFillColor(MUTED)
-    c.setFont("Body", 6.2)
-    c.drawCentredString(x + width / 2, y + 17, detail)
-
-
-def arrow(c, x1, y1, x2, y2, color=BLUE):
-    c.setStrokeColor(color)
-    c.setFillColor(color)
-    c.setLineWidth(1.2)
-    c.line(x1, y1, x2, y2)
-    c.line(x2, y2, x2 - 5, y2 + 3)
-    c.line(x2, y2, x2 - 5, y2 - 3)
-
-
 def page_two(c):
     c.setFillColor(PAPER)
     c.rect(0, 0, W, H, fill=1, stroke=0)
@@ -354,140 +323,11 @@ def draw_qr(c, url, x, y, size):
     renderPDF.draw(drawing, c, x, y)
 
 
-def _page_three_summary(c):
-    c.setFillColor(PAPER)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
-    label(c, "Project overview", M, H - 45, ORANGE)
-    c.setFillColor(INK)
-    c.setFont("BodyBold", 25)
-    c.drawString(M, H - 80, "How the complete system works.")
-    paragraph(
-        c,
-        "The project follows a checkout from the first event to investigation, reporting, and alerting. Shared order, trace, and transaction identifiers keep every part of the journey connected.",
-        M,
-        H - 107,
-        W - 2 * M,
-        8.9,
-        color=MUTED,
-        leading=12.6,
-    )
-
-    label(c, "End-to-end event journey", M, 685, BLUE)
-    node_y = 606
-    node_w = 105
-    node_gap = 18
-    main_nodes = [
-        (M, "1  CREATE", "Azure Functions", PALE_BLUE),
-        (M + node_w + node_gap, "2  RECEIVE", "Caddy HTTPS", PALE_ORANGE),
-        (M + 2 * (node_w + node_gap), "3  PROCESS", "Logstash", PALE_GREEN),
-        (M + 3 * (node_w + node_gap), "4  INVESTIGATE", "Elastic + Kibana", colors.HexColor("#F2D9D6")),
-    ]
-    for x, title, detail, fill in main_nodes:
-        rounded_box(c, x, node_y, node_w, 58, fill, None, 8)
-        c.setFillColor(INK)
-        c.setFont("BodyBold", 7.5)
-        c.drawCentredString(x + node_w / 2, node_y + 37, title)
-        c.setFillColor(MUTED)
-        c.setFont("Body", 6.3)
-        c.drawCentredString(x + node_w / 2, node_y + 21, detail)
-    for i in range(3):
-        arrow(c, main_nodes[i][0] + node_w + 4, node_y + 29, main_nodes[i + 1][0] - 4, node_y + 29, ORANGE)
-
-    rounded_box(c, M, 499, W - 2 * M, 82, colors.white, RULE, 9)
-    label(c, "Three operational outputs", M + 15, 561, ORANGE)
-    outputs = [
-        ("Investigation", "Kibana views rebuild the exact checkout journey.", BLUE),
-        ("Reporting", "Events are copied through a Function into Azure SQL.", GREEN),
-        ("Response", "Failed checkouts can create a Telegram incident card.", RED),
-    ]
-    output_w = (W - 2 * M - 30 - 2 * 15) / 3
-    for i, (title, detail, accent) in enumerate(outputs):
-        x = M + 15 + i * (output_w + 15)
-        c.setFillColor(accent)
-        c.circle(x + 4, 535, 4, fill=1, stroke=0)
-        c.setFillColor(INK)
-        c.setFont("BodyBold", 8)
-        c.drawString(x + 15, 532, title)
-        paragraph(c, detail, x, 516, output_w, 6.3, color=MUTED, leading=8.5)
-
-    label(c, "Ghost Order example", M, 465, RED)
-    rounded_box(c, M, 342, W - 2 * M, 104, NAVY, None, 10)
-    c.setFillColor(WHITE)
-    c.setFont("BodyBold", 13)
-    c.drawString(M + 18, 416, "Payment approved. Order missing.")
-    c.setFillColor(colors.HexColor("#A8BAC3"))
-    c.setFont("Body", 7.3)
-    c.drawString(M + 18, 397, "The same trace reveals the failure sequence and database cause.")
-    events = [
-        ("PAYMENT_SUCCESS", GREEN),
-        ("ORDER_CREATE_FAILED", RED),
-        ("DATABASE_TIMEOUT", RED),
-    ]
-    event_x = M + 18
-    for i, (event, accent) in enumerate(events):
-        width = [125, 143, 130][i]
-        rounded_box(c, event_x, 357, width, 26, NAVY_2, accent, 6)
-        c.setFillColor(accent)
-        c.setFont("Mono", 6.5)
-        c.drawCentredString(event_x + width / 2, 366, event)
-        event_x += width + 10
-
-    label(c, "Scenario coverage", M, 313, BLUE)
-    scenarios = [
-        ("75%", "Successful checkout", "201", PALE_GREEN, GREEN),
-        ("8%", "Ghost Order", "500", colors.HexColor("#F2D9D6"), RED),
-        ("10%", "Payment declined", "402", PALE_BLUE, BLUE),
-        ("7%", "Inventory shortage", "409", PALE_ORANGE, ORANGE),
-    ]
-    scenario_gap = 9
-    scenario_w = (W - 2 * M - 3 * scenario_gap) / 4
-    for i, (pct, title, status, fill, accent) in enumerate(scenarios):
-        x = M + i * (scenario_w + scenario_gap)
-        rounded_box(c, x, 220, scenario_w, 76, fill, None, 8)
-        c.setFillColor(accent)
-        c.setFont("BodyBold", 12)
-        c.drawString(x + 11, 271, pct)
-        c.setFillColor(INK)
-        c.setFont("BodyBold", 7.1)
-        for line_i, line in enumerate(wrap(title, 18)):
-            c.drawString(x + 11, 254 - line_i * 9, line)
-        c.setFillColor(MUTED)
-        c.setFont("Mono", 6.2)
-        c.drawString(x + 11, 231, f"HTTP {status}")
-
-    label(c, "What was delivered", M, 190, ORANGE)
-    delivered = [
-        ("Validated path", "Events passed through HTTPS, Logstash, Elasticsearch, the reporting Function, and SQL."),
-        ("Historical baseline", "Repeatable seeded journeys provide data from January 2026 without duplicate records."),
-        ("Secure access", "Kibana uses login and TLS; administration avoids public SSH and private data ports."),
-    ]
-    delivered_w = (W - 2 * M - 2 * 12) / 3
-    for i, (title, detail) in enumerate(delivered):
-        x = M + i * (delivered_w + 12)
-        c.setFillColor(INK)
-        c.setFont("BodyBold", 8)
-        c.drawString(x, 169, title)
-        paragraph(c, detail, x, 153, delivered_w, 6.4, color=MUTED, leading=8.8)
-
-    paragraph(
-        c,
-        "All application journeys and customer details in this demonstration are synthetic.",
-        M,
-        78,
-        W - 2 * M,
-        7,
-        color=MUTED,
-        leading=9.5,
-    )
-    footer(c, 3)
-    c.showPage()
-
-
 def page_three(c):
     c.setFillColor(NAVY)
     c.rect(0, 0, W, H, fill=1, stroke=0)
 
-    asset_dir = ROOT / "presentation" / "assets" / "azure"
+    asset_dir = ROOT / "report" / "assets" / "azure"
 
     def diagram_node(x, y, width, height, title, subtitle, icon=None, accent=BLUE):
         rounded_box(c, x, y, width, height, NAVY_2, colors.HexColor("#294454"), 7)
@@ -588,7 +428,7 @@ def page_three(c):
     c.setFont("Mono", 5.5)
     c.drawString(260, 657, "ONE FUNCTION APP / TWO API ROLES")
 
-    # VM network boundary inspired by the supplied Azure reference.
+    # VM network boundary.
     vm_x, vm_y, vm_w, vm_h = 126, 294, 260, 248
     c.setStrokeColor(colors.HexColor("#397FAD"))
     c.setLineWidth(0.9)

@@ -85,7 +85,7 @@ source .deployment/session.sh
 terraform -chdir=terraform destroy -var-file=../.deployment/inputs.json
 ```
 
-## Verification completed
+## Verification completed on 25 September 2026
 
 - Terraform apply succeeded; cloud-init completed successfully.
 - All 18 Node application tests passed in WSL.
@@ -111,7 +111,7 @@ terraform -chdir=terraform apply ../.deployment/analytics.tfplan
 ./scripts/configure-analytics.sh
 ```
 
-`configure-analytics.sh` publishes the ready-to-run package with Flex OneDeploy, copies the updated Caddy, Logstash, and Compose configuration to the VM, enables authenticated reporting, and invokes `validate-analytics.sh`. Validation checks both a direct Function write and a uniquely identified `Caddy -> Logstash -> Function -> SQL` event read-back.
+`configure-analytics.sh` publishes the ready-to-run package with Flex OneDeploy, synchronizes Compose, Caddy, Logstash, Filebeat, Kibana saved objects, and operational scripts to the VM, applies the stack, imports the dashboards, enables authenticated reporting, and invokes `validate-analytics.sh`. Validation checks both a direct Function write and a uniquely identified `Caddy -> Logstash -> Function -> SQL` event read-back.
 
 ## Telegram incident alerts
 

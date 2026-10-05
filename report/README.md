@@ -11,4 +11,6 @@ python3 -m venv /tmp/ayn-report-venv
 pdftoppm -f 3 -singlefile -scale-to 2400 -png report/output/AYN_AL_SIJILL_Project_Report_Final.pdf report/assets/architecture
 ```
 
-The generator reads images from `report/assets/` and the Azure service icons from `presentation/assets/azure/`. The website shown in the team page is an external introduction to the project contributors.
+The generator reads images from `report/assets/` and the Azure service icons from `report/assets/azure/`. The website shown in the team page is an external introduction to the project contributors.
+
+Azure service icons are from the [Microsoft Azure Architecture Center](https://learn.microsoft.com/azure/architecture/icons/).

@@ -7,7 +7,7 @@ GitHub.
 
 ## Pipeline
 
-`terraform-ci.yml` runs on pull requests and pushes to `dev`. It does not receive
+`terraform-ci.yml` runs on pull requests and pushes to `dev` and `main`. It does not receive
 an Azure identity. It installs the Function dependencies, runs the Node tests,
 checks shell syntax, checks Terraform formatting, initializes without a backend,
 validates Terraform and validates the Compose configuration.
