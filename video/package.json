@@ -1,0 +1,28 @@
+{
+  "name": "ayn-al-sijill-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "render:silent": "remotion render src/index.ts AYNPromo out/ayn-al-sijill-promo-silent.mp4 --codec=h264 --crf=16",
+    "render": "npm run typecheck && remotion render src/index.ts AYNPromo out/ayn-al-sijill-client-promo.mp4 --codec=h264 --crf=16",
+    "animatic": "npm run typecheck && remotion render src/index.ts TheKpiStayedGreenAnimatic out/the-kpi-stayed-green-animatic.mp4 --codec=h264 --crf=18",
+    "film:audio": "python3 scripts/synthesize-audio.py",
+    "film:draft": "remotion render src/film/index.tsx AYN29Master output/draft.mp4 --scale=0.5 --codec=h264 --crf=22 --concurrency=4",
+    "film:render": "bash scripts/render-film.sh",
+    "film:studio": "remotion studio src/film/index.tsx"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.528",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.528"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}
